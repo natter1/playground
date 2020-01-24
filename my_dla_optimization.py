@@ -16,9 +16,8 @@ from scipy.stats import multinomial
 
 
 def main():
-    dla_simulator = DLASimulator(area_size=(200, 200), max_steps=200) # , max_factor=0.5)  # max_steps is 167 for 500x500
-    dla_simulator.simulate(particles=
-                           30)
+    dla_simulator = DLASimulator(area_size=(500, 500), max_steps=150) # , max_factor=0.5)  # max_steps is 167 for 500x500
+    dla_simulator.simulate(particles=30)
     dla_simulator.plot()
     print("done")
 
@@ -31,6 +30,7 @@ class DLASimulator:
         self.initial_particles_pos = initial_particles_pos
         self.distance_matrix = None  # only to help code completion
         self.init_distance_matrix()
+        self.is_first_particle = True
         self.set_stick_particles(self.initial_particles_pos)
 
         self.max_steps = min(max_steps, self.distance_matrix.max())  # no need to precalculate more than max distance
@@ -38,11 +38,14 @@ class DLASimulator:
 
         self.list_of_position_probability_lists = generate_list_of_position_probability_lists(self.max_steps)
 
+    def reset(self):
+        self.init_distance_matrix()
+        self.set_stick_particles(self.initial_particles_pos)
+
     def simulate(self, particles: int = 1000, reset: bool = False):
         print("start simulation")
         if reset:
-            self.init_distance_matrix()
-            self.set_stick_particles(self.initial_particles_pos)
+            self.reset()
         for _ in range(particles):
             particle = self.get_new_particle()
             self.simulate_particle(particle)
@@ -77,18 +80,43 @@ class DLASimulator:
 
     def set_stick_particle(self, particle):
         pos_x, pos_y = particle
-        self.distance_matrix[pos_y, pos_x] = -1  # no ther particle allowed on this position
-        self.update_with_stick_poition(pos_x + 1, pos_y)
-        self.update_with_stick_poition(pos_x - 1, pos_y)
-        self.update_with_stick_poition(pos_x, pos_y + 1)
-        self.update_with_stick_poition(pos_x, pos_y - 1)
+        self.distance_matrix[pos_y, pos_x] = -1  # no other particle allowed on this position
+        self.update_distance_positions(particle)
 
-    def update_with_stick_poition(self, stick_x, stick_y):  # todo: this takes >2/3 of computation tim (200x200) -> check, wich part to update; consider numpy arry operation to change qhole row/col)
-        size_x, size_y = self.area_size
-        for pos_x in range(size_x):
-            for pos_y in range(size_y):
-                distance_to_stick = abs(pos_x-stick_x) + abs(pos_y-stick_y)
+    def update_distance_positions_in_rect(self, x_min, x_max, y_min, y_max, particle):
+        particle_x, particle_y = particle
+        for pos_x in range(x_min, x_max+1):
+            for pos_y in range(y_min, y_max + 1):
+                distance_to_stick = max(abs(pos_x - particle_x) + abs(pos_y - particle_y) - 1, 0)
                 self.distance_matrix[pos_y, pos_x] = min(self.distance_matrix[pos_y, pos_x], distance_to_stick)
+
+    # todo: how to improve? -> go in 4 directions; as soon as distance-value is smaller than distance from particle -> stop
+    def update_distance_positions(self, particle):
+        particle_x, particle_y = particle
+        x_min, y_min = 0, 0
+        x_max, y_max = self.area_size[0]-1, self.area_size[1]-1
+
+        for i in range(particle_x-1, -1, -1):
+            if self.distance_matrix[particle_y, i] <= particle_x - 1 - i:
+                x_min = i+1
+                break
+
+        for i in range(particle_y-1, -1, -1):
+            if self.distance_matrix[i, particle_x] <= particle_y - 1 - i:
+                y_min = i+1
+                break
+
+        for i in range(particle_x+1, self.area_size[0]):
+            if self.distance_matrix[particle_y, i] <= i - (particle_x + 1):
+                x_max = i-1
+                break
+
+        for i in range(particle_y+1, self.area_size[1]):
+            if self.distance_matrix[i, particle_x] <= i - (particle_y + 1):
+                y_max = i-1
+                break
+
+        self.update_distance_positions_in_rect(x_min, x_max, y_min, y_max, particle)
 
     def get_new_particle(self) -> list:
         random = np.random.randint(4)
@@ -131,6 +159,7 @@ class DLASimulator:
         plt.matshow(canvas)
         plt.show()
         plt.savefig("rand_walk_500particles.png", dpi=150)
+
 
 
 def calc_symmetric_positions(position_list: dict) -> dict:
