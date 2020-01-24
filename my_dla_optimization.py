@@ -5,6 +5,7 @@ https://codereview.stackexchange.com/questions/235883/how-to-increase-the-effici
 
 @author: Nathanael Jöhrmnann
 """
+import bisect
 from collections import defaultdict
 from multiprocessing.pool import Pool
 from multiprocessing.spawn import freeze_support
@@ -16,8 +17,9 @@ from scipy.stats import multinomial
 
 
 def main():
-    dla_simulator = DLASimulator(area_size=(500, 500), max_steps=150) # , max_factor=0.5)  # max_steps is 167 for 500x500
-    dla_simulator.simulate(particles=30)
+    np.random.seed(0)
+    dla_simulator = DLASimulator(area_size=(500, 500), max_steps=200)  # max_steps is 167 for 500x500
+    dla_simulator.simulate(particles=50000)
     dla_simulator.plot()
     print("done")
 
@@ -36,7 +38,7 @@ class DLASimulator:
         self.max_steps = min(max_steps, self.distance_matrix.max())  # no need to precalculate more than max distance
         self.max_steps = max(int(self.max_steps*max_factor), 1)  # no need to precalculate more than max distance
 
-        self.list_of_position_probability_lists = generate_list_of_position_probability_lists(self.max_steps)
+        self.list_of_position_probability_dicts = generate_list_of_position_probability_dicts(self.max_steps)
 
     def reset(self):
         self.init_distance_matrix()
@@ -65,7 +67,7 @@ class DLASimulator:
                 particle[0] = min(max(particle[0] + pos_x, 0), self.area_size[0]-1)
                 particle[1] = min(max(particle[1] + pos_y, 0), self.area_size[1]-1)
 
-    # calc distance to border for all positions (allowed steps for each position)
+    # calc distance to border for all positions (allowed number of steps in one go for each position)
     def init_distance_matrix(self):
         size_x, size_y = self.area_size
         self.distance_matrix = np.zeros(self.area_size, np.int16)
@@ -90,12 +92,12 @@ class DLASimulator:
                 distance_to_stick = max(abs(pos_x - particle_x) + abs(pos_y - particle_y) - 1, 0)
                 self.distance_matrix[pos_y, pos_x] = min(self.distance_matrix[pos_y, pos_x], distance_to_stick)
 
-    # todo: how to improve? -> go in 4 directions; as soon as distance-value is smaller than distance from particle -> stop
     def update_distance_positions(self, particle):
         particle_x, particle_y = particle
         x_min, y_min = 0, 0
         x_max, y_max = self.area_size[0]-1, self.area_size[1]-1
 
+        # go in 4 directions; as soon as distance-value is smaller than distance from particle -> stop
         for i in range(particle_x-1, -1, -1):
             if self.distance_matrix[particle_y, i] <= particle_x - 1 - i:
                 x_min = i+1
@@ -137,16 +139,13 @@ class DLASimulator:
         return [pos_x, pos_y]
 
     def get_random_step(self, distance):
-        pos_x, pos_y = (0, 0)
-        step_list = self.list_of_position_probability_lists[min(distance, self.max_steps)]
+        n_step_dict = self.list_of_position_probability_dicts[min(distance, self.max_steps)]
         random = np.random.random()
-        for key, value in step_list.items():
-            if value >= random:
-                pos_x = key[0]
-                pos_y = key[1]
-                old_value = value
-                assert old_value <= value
-                break
+        # search on numpy array seems to be slower then bisect on list
+        # index = np.searchsorted(n_step_dict["cumulative probability"], random)
+        index = bisect.bisect_left(n_step_dict["cumulative probability"], random)
+        pos_x = n_step_dict["pos_x"][index]
+        pos_y = n_step_dict["pos_y"][index]
         return pos_x, pos_y
 
     def plot(self):
@@ -180,14 +179,17 @@ def calc_symmetric_positions(position_list: dict) -> dict:
     return result
 
 
-# no need for complete matrix, only list with actualy reachable positions; 1.055 times faster (compared to matrix)
+# no need for complete matrix, only list with actually reachable positions;
+# creation is 1.055 times faster (compared to full matrix)
 def calc_position_probability_list_symmetric(number_of_steps) -> dict:
-    result = {}
+    result = {"cumulative probability": [], "pos_x": [], "pos_y": []}
     # position_list = defaultdict(lambda:0.0) # multiprocessing needs to pickle -> can't have a lambda
     position_list = defaultdict(float)
     if number_of_steps == 0:
-        result[(0, 0)] = 1
-        return position_list
+        result["cumulative probability"].append(1)
+        result["pos_x"].append(0)
+        result["pos_y"].append(0)
+        return result
 
     p_list = [0.25, 0.25, 0.25, 0.25]  # all directions have same probability
     rv = multinomial(number_of_steps, p_list)
@@ -214,25 +216,30 @@ def calc_position_probability_list_symmetric(number_of_steps) -> dict:
     position_list.update(calc_symmetric_positions(position_list))
 
     # create cummulative distribution values:
+    # todo: consider sorting before creating cumulative, to allow faster algorithm SLASimulator.in get_random_step()
     sum=0
     for key, value in position_list.items():
         sum += value
-        result[key] = sum
+        result["cumulative probability"].append(sum)
+        result["pos_x"].append(key[0])
+        result["pos_y"].append(key[1])
+    # no speedup for bisect (np.array is even slower then list)
+    # result["cumulative probability"] = np.array(result["cumulative probability"])
+    # result["cumulative probability"] = tuple(result["cumulative probability"])
     assert np.isclose(sum, 1.0)
     return result
-    # return position_list
 
 
-def generate_list_of_position_probability_lists_single_process(max_number_of_steps):
+def generate_list_of_position_probability_dicts_single_process(max_number_of_steps: int) -> List[dict]:
     result = []
     for i in range(max_number_of_steps+1):
         result.append(calc_position_probability_list_symmetric(i))
     return result
 
 
-def generate_list_of_position_probability_lists(max_number_of_steps, multiprocessing=True):
+def generate_list_of_position_probability_dicts(max_number_of_steps: int, multiprocessing=True) -> List[dict]:
     if not multiprocessing:
-        return generate_list_of_position_probability_lists_single_process(max_number_of_steps)
+        return generate_list_of_position_probability_dicts_single_process(max_number_of_steps)
 
     with Pool() as pool:  # processes=None (or no argument given) ->  number returned by os.cpu_count() is used.
         result = pool.map(calc_position_probability_list_symmetric, range(max_number_of_steps+1))
