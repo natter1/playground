@@ -1,10 +1,24 @@
+from enum import Enum, auto
+from typing import Union, Literal
+
 import pyvista as pv
 
+
+# create singleton IGNORE and a type for TypeHinting
+from pyvista import parse_font_family
+
+
+class Ignore(Enum):
+    token = auto()
+
+
+IGNORE = Ignore.token
 
 def main():
     from pyvista import examples
     theme = BaseTheme()
     theme.background = 'w'
+    theme.set_font(size=40, color='red')
     theme.use()
     dem = examples.download_crater_topo()
     dem.plot(cpos="xy")
@@ -15,41 +29,41 @@ def main():
 
 class BaseTheme:
     def __init__(self):
-        # None -> rcParmas value not changed
-        self._jupyter_backend = None
-        self._auto_close = None
-        self._background = None
-        self._full_screen = None
-        self._camera = None
-        self._notebook = None
-        self._window_size = None
-        self._font = None
-        self._cmap = None
-        self._color = None
-        self._nan_color = None
-        self._edge_color = None
-        self._outline_color = None
-        self._floor_color = None
-        self._colorbar_orientation = None
-        self._colorbar_horizontal = None
-        self._colorbar_vertical = None
-        self._show_scalar_bar = None
-        self._show_edges = None
-        self._lighting = None
-        self._interactive = None
-        self._render_points_as_spheres = None
-        self._use_ipyvtk = None
-        self._use_panel = None
-        self._transparent_background = None
-        self._title = None
-        self._axes = None
-        self._multi_samples = None
-        self._multi_rendering_splitting_position = None
-        self._volume_mapper = None
-        self._smooth_shading = None
-        self._depth_peeling = None
-        self._silhouette = None
-        self._slider_style = None
+        # IGNORE -> rcParmas value not changed
+        self._jupyter_backend = IGNORE
+        self._auto_close = IGNORE
+        self._background = IGNORE
+        self._full_screen = IGNORE
+        self._camera = IGNORE
+        self._notebook = IGNORE
+        self._window_size = IGNORE
+        self._font = IGNORE
+        self._cmap = IGNORE
+        self._color = IGNORE
+        self._nan_color = IGNORE
+        self._edge_color = IGNORE
+        self._outline_color = IGNORE
+        self._floor_color = IGNORE
+        self._colorbar_orientation = IGNORE
+        self._colorbar_horizontal = IGNORE
+        self._colorbar_vertical = IGNORE
+        self._show_scalar_bar = IGNORE
+        self._show_edges = IGNORE
+        self._lighting = IGNORE
+        self._interactive = IGNORE
+        self._render_points_as_spheres = IGNORE
+        self._use_ipyvtk = IGNORE
+        self._use_panel = IGNORE
+        self._transparent_background = IGNORE
+        self._title = IGNORE
+        self._axes = IGNORE
+        self._multi_samples = IGNORE
+        self._multi_rendering_splitting_position = IGNORE
+        self._volume_mapper = IGNORE
+        self._smooth_shading = IGNORE
+        self._depth_peeling = IGNORE
+        self._silhouette = IGNORE
+        self._slider_style = IGNORE
 
     @property
     def jupyter_backend(self):
@@ -112,7 +126,7 @@ class BaseTheme:
         return self._font
 
     @font.setter
-    def font(self, value):
+    def font(self, value: dict):
         self._font = value
 
     @property
@@ -328,9 +342,8 @@ class BaseTheme:
         theme_dict = self._generate_dict()
         from pyvista import DEFAULT_THEME
         for k, v in DEFAULT_THEME.items():
-            if theme_dict[k] is not None:
+            if theme_dict[k] is not IGNORE:
                 pv.rcParams[k] = theme_dict[k]
-        # todo: handle prroperties that actually can be set to None!
 
     def use_for(self, plot):
         # only use for given plot
@@ -338,6 +351,34 @@ class BaseTheme:
 
     def copy_from(self, theme):
         pass
+
+    def set_font(self,  # todo: consider extra class ThemeFont instead
+                 family: Union[Ignore, Literal['courier', 'times', 'arial']] = IGNORE,
+                 size: Union[Ignore, int] = IGNORE,
+                 title_size: Union[None, Ignore, int] = IGNORE,
+                 label_size: Union[None, Ignore, int] = IGNORE,
+                 color=IGNORE,  # todo: class ThemeColor? Would also help with typing
+                 fmt=IGNORE
+                 ) -> None:
+        if self._font in [IGNORE, None]:
+            self._font = {}  # todo: thats not good enough; if some values are IGNORE the new dict is incomplete!
+            self._font = pv.rcParams["font"]  # todo: is this better? might set unwanted values
+
+        if family is not IGNORE:
+            # use parse_font_family() # todo: needs change in BaseTheme.use() or pyvistas rcParams
+            # for now parse_font_family is only used to raise ValueError
+            parse_font_family(family)
+            self._font["family"] = family
+        if size is not IGNORE:
+            self._font["size"] = size
+        if title_size is not IGNORE:
+            self._font["title_size"] = title_size
+        if label_size is not IGNORE:
+            self._font["label_size"] = label_size
+        if color is not IGNORE:
+            self._font["color"] = color
+        if fmt is not IGNORE:
+            self._font["fmt"] = fmt
 
     def _generate_dict(self):
         # generate dict for use with pv.set_plot_theme()
@@ -389,7 +430,7 @@ class DefaultTheme(BaseTheme):
             'position': [1, 1, 1],
             'viewup': [0, 0, 1],
         }
-        self.notebook = None  # todo: handle None as parameter to set
+        self.notebook = None
         self.window_size = [1024, 768]
         self.font = {
             'family': 'arial',
@@ -435,7 +476,7 @@ class DefaultTheme(BaseTheme):
             'show': True,
         }
         self.multi_samples = 4
-        self.multi_rendering_splitting_position = None  # todo: how to know whether None should be set or should be ignored?
+        self.multi_rendering_splitting_position = None
         import os
         self.volume_mapper = 'fixed_point' if os.name == 'nt' else 'smart'
         self.smooth_shading = False
