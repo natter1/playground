@@ -1,12 +1,27 @@
 import pyvista as pv
 
 
+def main():
+    from pyvista import examples
+    theme = BaseTheme()
+    theme.background = 'w'
+    theme.use()
+    dem = examples.download_crater_topo()
+    dem.plot(cpos="xy")
+
+    DefaultTheme().use()
+    dem.plot(cpos="xy")
+
+
 class BaseTheme:
     def __init__(self):
         # None -> rcParmas value not changed
+        self._jupyter_backend = None
         self._auto_close = None
         self._background = None
+        self._full_screen = None
         self._camera = None
+        self._notebook = None
         self._window_size = None
         self._font = None
         self._cmap = None
@@ -23,6 +38,7 @@ class BaseTheme:
         self._lighting = None
         self._interactive = None
         self._render_points_as_spheres = None
+        self._use_ipyvtk = None
         self._use_panel = None
         self._transparent_background = None
         self._title = None
@@ -30,8 +46,18 @@ class BaseTheme:
         self._multi_samples = None
         self._multi_rendering_splitting_position = None
         self._volume_mapper = None
+        self._smooth_shading = None
         self._depth_peeling = None
-        self._slide_style = None
+        self._silhouette = None
+        self._slider_style = None
+
+    @property
+    def jupyter_backend(self):
+        return self._jupyter_backend
+
+    @jupyter_backend.setter
+    def jupyter_backend(self, value):
+        self._jupyter_backend = value
 
     @property
     def auto_close(self):
@@ -50,12 +76,28 @@ class BaseTheme:
         self._background = value
 
     @property
+    def full_screen(self):
+        return self._full_screen
+
+    @full_screen.setter
+    def full_screen(self, value):
+        self._full_screen = value
+
+    @property
     def camera(self):
         return self._camera
 
     @camera.setter
     def camera(self, value):
         self._camera = value
+
+    @property
+    def notebook(self):
+        return self._notebook
+
+    @notebook.setter
+    def notebook(self, value):
+        self._notebook = value
 
     @property
     def window_size(self):
@@ -186,6 +228,14 @@ class BaseTheme:
         self._render_points_as_spheres = value
 
     @property
+    def use_ipyvtk(self):
+        return self._use_ipyvtk
+
+    @use_ipyvtk.setter
+    def use_ipyvtk(self, value):
+        self._use_ipyvtk = value
+
+    @property
     def use_panel(self):
         return self._use_panel
 
@@ -242,6 +292,14 @@ class BaseTheme:
         self._volume_mapper = value
 
     @property
+    def smooth_shading(self):
+        return self._smooth_shading
+
+    @smooth_shading.setter
+    def smooth_shading(self, value):
+        self._smooth_shading = value
+
+    @property
     def depth_peeling(self):
         return self._depth_peeling
 
@@ -250,16 +308,29 @@ class BaseTheme:
         self._depth_peeling = value
 
     @property
-    def slide_style(self):
-        return self._slide_style
+    def silhouette(self):
+        return self._silhouette
 
-    @slide_style.setter
-    def slide_style(self, value):
-        self._slide_style = value
+    @silhouette.setter
+    def silhouette(self, value):
+        self._silhouette = value
+
+    @property
+    def slider_style(self):
+        return self._slider_style
+
+    @slider_style.setter
+    def slider_style(self, value):
+        self._slider_style = value
 
     def use(self):
         # set theme to rcParams
-        pass
+        theme_dict = self._generate_dict()
+        from pyvista import DEFAULT_THEME
+        for k, v in DEFAULT_THEME.items():
+            if theme_dict[k] is not None:
+                pv.rcParams[k] = theme_dict[k]
+        # todo: handle prroperties that actually can be set to None!
 
     def use_for(self, plot):
         # only use for given plot
@@ -270,18 +341,55 @@ class BaseTheme:
 
     def _generate_dict(self):
         # generate dict for use with pv.set_plot_theme()
-        pass
+        return {
+            "jupyter_backend": self.jupyter_backend,
+            "auto_close": self.auto_close,
+            "background": self.background,
+            "full_screen": self.full_screen,
+            "camera": self.camera,
+            "notebook": self.notebook,
+            "window_size": self.window_size,
+            "font": self.font,
+            "cmap": self.cmap,
+            "color": self.color,
+            "nan_color": self.nan_color,
+            "edge_color": self.edge_color,
+            "outline_color": self.outline_color,
+            "floor_color": self.floor_color,
+            "colorbar_orientation": self.colorbar_orientation,
+            "colorbar_horizontal": self.colorbar_horizontal,
+            "colorbar_vertical": self.colorbar_vertical,
+            "show_scalar_bar": self.show_scalar_bar,
+            "show_edges": self.show_edges,
+            "lighting": self.lighting,
+            "interactive": self.interactive,
+            "render_points_as_spheres": self.render_points_as_spheres,
+            "use_ipyvtk": self.use_ipyvtk,
+            "use_panel": self.use_panel,
+            "transparent_background": self.transparent_background,
+            "title": self.title,
+            "axes": self.axes,
+            "multi_samples": self.multi_samples,
+            "multi_rendering_splitting_position": self.multi_rendering_splitting_position,
+            "volume_mapper": self.volume_mapper,
+            "smooth_shading": self.smooth_shading,
+            "depth_peeling": self.depth_peeling,
+            "silhouette": self.silhouette,
+            "slider_style": self.slider_style
+        }
 
 
 class DefaultTheme(BaseTheme):
     def __init__(self):
         super().__init__()
+        self.jupyter_backend = 'ipyvtklink'
         self.auto_close = True
         self.background = [0.3, 0.3, 0.3]
         self.camera = {
             'position': [1, 1, 1],
             'viewup': [0, 0, 1],
         }
+        self.notebook = None  # todo: handle None as parameter to set
         self.window_size = [1024, 768]
         self.font = {
             'family': 'arial',
@@ -315,6 +423,7 @@ class DefaultTheme(BaseTheme):
         self.lighting = True
         self.interactive = False
         self.render_points_as_spheres = False
+        self.use_ipyvtk = False
         self.use_panel = False
         self.transparent_background = False
         self.title = 'PyVista'
@@ -329,12 +438,20 @@ class DefaultTheme(BaseTheme):
         self.multi_rendering_splitting_position = None  # todo: how to know whether None should be set or should be ignored?
         import os
         self.volume_mapper = 'fixed_point' if os.name == 'nt' else 'smart'
+        self.smooth_shading = False
         self.depth_peeling = {
             'number_of_peels': 4,
             'occlusion_ratio': 0.0,
             'enabled': False,
         }
-        self.slide_style = {
+        self.silhouette = {
+            'color': 'black',
+            'line_width': 2,
+            'opacity': 1.0,
+            'feature_angle': False,
+            'decimate': 0.9,
+        }
+        self.slider_style = {
             'classic': {
                 'slider_length': 0.02,
                 'slider_width': 0.04,
@@ -403,3 +520,8 @@ class DefaultTheme(BaseTheme):
 # rcParams['axes']['x_color'] = 'tomato'
 # rcParams['axes']['y_color'] = 'seagreen'
 # rcParams['axes']['z_color'] = 'blue'
+
+
+
+if __name__ == '__main__':
+    main()
