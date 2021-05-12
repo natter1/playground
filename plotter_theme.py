@@ -352,34 +352,6 @@ class BaseTheme:
     def copy_from(self, theme):
         pass
 
-    def set_font(self,  # todo: consider extra class ThemeFont instead
-                 family: Union[Ignore, Literal['courier', 'times', 'arial']] = IGNORE,
-                 size: Union[Ignore, int] = IGNORE,
-                 title_size: Union[None, Ignore, int] = IGNORE,
-                 label_size: Union[None, Ignore, int] = IGNORE,
-                 color=IGNORE,  # todo: class ThemeColor? Would also help with typing
-                 fmt=IGNORE
-                 ) -> None:
-        if self._font in [IGNORE, None]:
-            self._font = {}  # todo: thats not good enough; if some values are IGNORE the new dict is incomplete!
-            self._font = pv.rcParams["font"]  # todo: is this better? might set unwanted values
-
-        if family is not IGNORE:
-            # use parse_font_family() # todo: needs change in BaseTheme.use() or pyvistas rcParams
-            # for now parse_font_family is only used to raise ValueError
-            parse_font_family(family)
-            self._font["family"] = family
-        if size is not IGNORE:
-            self._font["size"] = size
-        if title_size is not IGNORE:
-            self._font["title_size"] = title_size
-        if label_size is not IGNORE:
-            self._font["label_size"] = label_size
-        if color is not IGNORE:
-            self._font["color"] = color
-        if fmt is not IGNORE:
-            self._font["fmt"] = fmt
-
     def _generate_dict(self):
         # generate dict for use with pv.set_plot_theme()
         return {
