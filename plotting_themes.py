@@ -372,5 +372,147 @@ class VPLOTStyle(EmptyStyle):
             vtk = self._use_vtk
 
 
+# ----------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------- PostProcessing -----------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
+
+# -------------------------
+# ()
+# -------------------------
+# parameters:
+
+# inside method:
+
+
+
+kwargs = {}
+# -------------------------
+# plot_nodal_displacement()
+# -------------------------
+# parameters:
+component='NORM'
+show_node_numbering=False
+kwargs  # -> self._plot_point_scalars()
+
+# inside method:
+kwargs.setdefault('stitle', '%s Displacement' % component)
+
+
+# -------------------------
+# plot_nodal_rotation()
+# -------------------------
+# parameters:
+component  # no default value
+show_node_numbering=False
+kwargs  # -> self._plot_point_scalars()
+# inside method:
+kwargs.setdefault('stitle', '%s Rotation' % component)
+
+
+# -------------------------
+# plot_nodal_temperature()
+# -------------------------
+# parameters:
+show_node_numbering=False
+kwargs  # -> self._plot_point_scalars()
+# inside method:
+kwargs.setdefault('stitle', 'Nodal\nTemperature')
+
+
+# -------------------------
+# plot_nodal_pressure()
+# -------------------------
+# parameters:
+show_node_numbering=False
+kwargs  # -> self._plot_point_scalars()
+# inside method:
+kwargs.setdefault('stitle', 'Nodal\nPressure')
+
+
+# --------------------
+# plot_nodal_voltage()
+# --------------------
+# parameters:
+show_node_numbering=False
+kwargs  # -> self._plot_point_scalars()
+# inside method:
+kwargs.setdefault('stitle', 'Nodal\nVoltage')
+
+
+# -----------------------------
+# plot_nodal_component_stress()
+# -----------------------------
+# parameters:
+component  # no default value
+show_node_numbering=False
+kwargs  # -> self._plot_point_scalars()
+# inside method:
+kwargs.setdefault('stitle', '%s Nodal\nStress' % component)
+
+
+# -----------------------------
+# plot_nodal_principal_stress()
+# -----------------------------
+# parameters:
+component  # no default value
+show_node_numbering=False
+kwargs  # -> self._plot_point_scalars()
+# inside method:
+kwargs.setdefault('stitle', '%s Nodal\nPrincipal Stress' % component)
+
+
+# -----------------------------
+# plot_nodal_stress_intensity()
+# -----------------------------
+# parameters:
+show_node_numbering=False
+kwargs  # -> self._plot_point_scalars()
+# inside method:
+kwargs.setdefault('stitle', 'Nodal Stress\nIntensity')
+
+
+# -------------------------
+# ()
+# -------------------------
+# parameters:
+
+# inside method:
+
+
+
+
+
+
+
+from enum import Enum, auto
+class NodalSolution(Enum):
+    Displacement_X = auto()
+    Displacement_Y = auto()
+    Displacement_Z = auto()
+    Displacement_NORM = auto()
+
+    Rotation_X = auto()
+    Rotation_Y = auto()
+    Rotation_Z = auto()
+
+print(NodalSolution.Rotation_Y.name)
+
+
+# ---------------------
+# _plot_point_scalars()
+# ---------------------
+# parameters:
+show_node_numbering=False
+kwargs  # -> general_plotter()
+
+# inside method:
+meshes = [{'mesh': surf.copy(deep=False),  # deep=False for ipyvtk-simple
+           'stitle': kwargs.pop('stitle', ''),
+           'scalars': scalars}]
+if show_node_numbering:
+    labels = [{'points': surf.points, 'labels': surf['ansys_node_num']}]
+kwargs.setdefault('title', 'MAPDL Displacement')
+
+
 if __name__ == '__main__':
     main()
