@@ -2,6 +2,7 @@ from enum import Enum, auto
 from typing import Literal, Optional
 
 import pyvista as pv
+from ansys.mapdl.core.post import PostProcessing
 from pyvista.themes import DefaultTheme
 
 
@@ -71,8 +72,7 @@ class EmptyStyle(DefaultTheme):
 class GeneralPlotterStyle(EmptyStyle):
     def __init__(self):
         """
-    if notebook:
-        off_screen = True
+        Most (all?) plotting functions in pymapdl can address the parameters in general_plotter() via kwargs.
         """
         super().__init__()
         self.title = ''
@@ -108,38 +108,11 @@ class GeneralPlotterStyle(EmptyStyle):
         self.font.family = None
         self.text_color = None
 
-        # ------------------------------------
-        # --- parameters general_plotter() ---
-        # ------------------------------------
-        title = ''
-        cpos = None
-        show_bounds = False
-        show_axes = True
-        background = None
-        off_screen = None
-        savefig = None
-        window_size = None
-        notebook = None
-        # add_mesh kwargs:
-        color = 'w'
-        show_edges = None
-        edge_color = None
-        point_size = 5.0,
-        line_width = None
-        opacity = 1.0
-        flip_scalars = False
-        lighting = None
-        n_colors = 256
-        interpolate_before_map = True
-        cmap = None
-        render_points_as_spheres = False
-        render_lines_as_tubes = False
-        stitle = None  # todo: stitle is deprecated in pyvista -> scalar_bar_args
-        smooth_shading = None
-        # labels kwargs  # todo: how does this correlate with pyvista Theme? (I think it does not set label font)
-        font_size = None
-        font_family = None
-        text_color = None
+        # --------------------------------
+        # --- inside general_plotter() ---
+        # --------------------------------
+        if notebook:
+            off_screen = True
 
 
 class APlotStyle(EmptyStyle):
@@ -495,6 +468,47 @@ class NodalSolution(Enum):
     Rotation_Y = auto()
     Rotation_Z = auto()
 
+    Temperature = auto()
+    # ...
+
+
+class NodalTheme(MAPDLTheme):
+    def __init__(self):
+        super().__init__()
+        # todo: how to implement optional settings like stitle (in most cases plot() should take care of it)
+        self.show_node_numbering = False
+
+
+class _PostProcessing(PostProcessing):
+    def __init__(self, mapdl):
+        # todo: move to PostProcessing (allows function as self.nodal_displacement ...)
+        super().__init__(mapdl)
+        self._plot_dict = {  # scalar function, stitle, comp
+            NodalSolution.Displacement_X: (self.nodal_displacement, 'X Displacement', 'X'),
+            NodalSolution.Displacement_Y: (self.nodal_displacement, 'Y Displacement', 'Y'),
+            NodalSolution.Displacement_Z: (self.nodal_displacement, 'Z Displacement', 'Z'),
+            NodalSolution.Displacement_NORM: (self.nodal_displacement, 'NORM Displacement', 'NORM'),
+            NodalSolution.Rotation_X: (self.nodal_rotation, 'X Rotation', 'X'),
+            NodalSolution.Rotation_Y: (self.nodal_rotation, 'Y Rotation', 'y'),
+            NodalSolution.Rotation_Z: (self.nodal_rotation, 'Z Rotation', 'Z'),
+            NodalSolution.Temperature: (self.nodal_temperature, 'Nodal Temperature', None),
+            # ...
+        }
+
+    def plot(self, solution: NodalSolution, show_node_numbering=False, **kwargs):
+        func, _stitle, comp = self._plot_dict[solution]
+        kwargs.setdefault('stitle', _stitle)
+        if comp is not None:
+            scalars = func(comp)
+        else:
+            scalars = func()
+
+        return self._plot_point_scalars(scalars, show_node_numbering=show_node_numbering,
+                                        **kwargs)
+
+
+
+
 print(NodalSolution.Rotation_Y.name)
 
 
@@ -511,7 +525,7 @@ meshes = [{'mesh': surf.copy(deep=False),  # deep=False for ipyvtk-simple
            'scalars': scalars}]
 if show_node_numbering:
     labels = [{'points': surf.points, 'labels': surf['ansys_node_num']}]
-kwargs.setdefault('title', 'MAPDL Displacement')
+kwargs.setdefault('title', 'MAPDL Displacement')  # todo: is this correct? title is not set in plot_nodal_...()
 
 
 if __name__ == '__main__':
