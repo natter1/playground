@@ -24,8 +24,8 @@ class ElementData:
         self.name = self.name_raw.lower()
         element_descritption_soup = refentry_soup.find("div", title=f"{self.name_raw} Element Description")
         self.description = element_descritption_soup.text.replace(
-            f"{self.name_raw} Element Description", f"Control object for element {self.name}\n"
-        )
+            f"{self.name_raw} Element Description", f"Control object for element {self.name}.\n\n"
+        ).replace("\n", "\n    ")
 
         real_constant_table_soup = soup.find("table", summary=f"{self.name_raw} Real Constants")
         table_soup = real_constant_table_soup.find("tbody")
@@ -45,10 +45,13 @@ class ElementData:
         ind2 = "        "
         empty_line = ""
 
-        result = [
-            f"class {self.name.capitalize()}:",
-            f"{ind}def __init__(self):"
-        ]
+        result = [f"class {self.name.capitalize()}:"]
+        result.append(f"{ind}\"\"\"")
+        result.append(f"{ind}{self.description}")
+        result.append(f"{ind}\"\"\"")
+
+        result.append(f"{ind}def __init__(self):")
+
         for row in self.real_constant_table:
             result.append(f"{ind2}self._{row[1]} = \"\"")
 

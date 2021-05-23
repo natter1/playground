@@ -1,4 +1,28 @@
 class Conta172:
+    """
+    Control object for element conta172.
+    
+    CONTA172 is used to represent contact
+    and sliding between 2-D target surfaces (TARGE169) and a deformable surface, defined by this element. The element
+    is applicable to 2-D structural and coupled-field contact analyses.
+    It can be used for both pair-based contact and general contact.In the case of pair-based contact, the target surface is defined
+    by the 2-D target element type, TARGE169.
+    In the case of general contact, the target surface can be defined
+    by CONTA172 elements (for deformable surfaces)
+    or TARGE169 elements (for rigid bodies only). This element is located on the surfaces of 2-D solid elements with
+                midside nodes (for example, PLANE183,
+                    INTER193, SHELL209,
+                    PLANE223, CPT213,
+                    MATRIX50). The element has the same geometric characteristics as the solid
+    element face with which it is connected (see Figure�172.1:�CONTA172 Geometry). Contact occurs when the element surface
+    penetrates an associated target surface.Coulomb friction, shear stress friction, user-defined friction
+    with the USERFRIC subroutine, and user-defined
+    contact interaction with the USERINTER subroutine
+    are allowed. This element also allows separation of bonded contact
+    to simulate interface delamination. See CONTA172 in the Mechanical APDL Theory Reference for more details about this element. Other surface-to-surface
+    contact elements (CONTA171, CONTA173, CONTA174) are also available.Figure�172.1:��CONTA172 Geometry
+    """
+
     def __init__(self):
         self._r1 = ""
         self._r2 = ""
