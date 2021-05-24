@@ -14,15 +14,14 @@ class Conta172:
                     INTER193, SHELL209,
                     PLANE223, CPT213,
                     MATRIX50). The element has the same geometric characteristics as the solid
-    element face with which it is connected (see Figure�172.1:�CONTA172 Geometry). Contact occurs when the element surface
+    element face with which it is connected (see Figure 172.1: CONTA172 Geometry). Contact occurs when the element surface
     penetrates an associated target surface.Coulomb friction, shear stress friction, user-defined friction
     with the USERFRIC subroutine, and user-defined
     contact interaction with the USERINTER subroutine
     are allowed. This element also allows separation of bonded contact
     to simulate interface delamination. See CONTA172 in the Mechanical APDL Theory Reference for more details about this element. Other surface-to-surface
-    contact elements (CONTA171, CONTA173, CONTA174) are also available.Figure�172.1:��CONTA172 Geometry
+    contact elements (CONTA171, CONTA173, CONTA174) are also available.Figure 172.1:  CONTA172 Geometry
     """
-
     def __init__(self):
         self._r1 = ""
         self._r2 = ""

@@ -8,7 +8,7 @@ text = "\n".join(data.create_class_str())
 
 print(text)
 
-with open("conta172.py", 'w') as f:
+with open("conta172.py", 'w', encoding="utf-8") as f:
     f.write(text)
 
 
